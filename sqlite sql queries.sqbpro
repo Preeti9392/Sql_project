@@ -1,0 +1,121 @@
+<?xml version="1.0" encoding="UTF-8"?><sqlb_project><db path="kbo_database.db" readonly="0" foreign_keys="1" case_sensitive_like="0" temp_store="0" wal_autocheckpoint="1000" synchronous="2"/><attached/><window><main_tabs open="structure browser pragmas query" current="1"/></window><tab_structure><column_width id="0" width="300"/><column_width id="1" width="0"/><column_width id="2" width="100"/><column_width id="3" width="1727"/><column_width id="4" width="0"/><expanded_item id="0" parent="1"/><expanded_item id="1" parent="1"/><expanded_item id="2" parent="1"/><expanded_item id="3" parent="1"/></tab_structure><tab_browse><table title="code" custom_title="0" dock_id="3" table="4,4:maincode"/><dock_state state="000000ff00000000fd0000000100000002000005f4000002b6fc0100000003fb000000160064006f0063006b00420072006f007700730065003101000000000000043c0000000000000000fb000000160064006f0063006b00420072006f00770073006500320100000000000005f40000000000000000fb000000160064006f0063006b00420072006f00770073006500330100000000000005f40000011800ffffff000002580000000000000004000000040000000800000008fc00000000"/><default_encoding codec=""/><browse_table_settings><table schema="main" name="activity" show_row_id="0" encoding="" plot_x_axis="" unlock_view_pk="_rowid_" freeze_columns="0"><sort><column index="3" mode="1"/></sort><column_widths><column index="1" value="101"/><column index="2" value="84"/><column index="3" value="77"/><column index="4" value="63"/><column index="5" value="82"/></column_widths><filter_values/><conditional_formats/><row_id_formats/><display_formats/><hidden_columns/><plot_y_axes/><global_filter/></table><table schema="main" name="address" show_row_id="0" encoding="" plot_x_axis="" unlock_view_pk="_rowid_" freeze_columns="0"><sort/><column_widths><column index="1" value="101"/><column index="2" value="92"/><column index="3" value="67"/><column index="4" value="67"/><column index="5" value="52"/><column index="6" value="210"/><column index="7" value="210"/><column index="8" value="257"/><column index="9" value="265"/><column index="10" value="87"/><column index="11" value="39"/><column index="12" value="273"/><column index="13" value="95"/></column_widths><filter_values/><conditional_formats/><row_id_formats/><display_formats/><hidden_columns/><plot_y_axes/><global_filter/></table><table schema="main" name="branch" show_row_id="0" encoding="" plot_x_axis="" unlock_view_pk="_rowid_" freeze_columns="0"><sort/><column_widths><column index="1" value="109"/><column index="2" value="85"/><column index="3" value="110"/></column_widths><filter_values/><conditional_formats/><row_id_formats/><display_formats/><hidden_columns/><plot_y_axes/><global_filter/></table><table schema="main" name="code" show_row_id="0" encoding="" plot_x_axis="" unlock_view_pk="_rowid_" freeze_columns="0"><sort/><column_widths><column index="1" value="148"/><column index="2" value="62"/><column index="3" value="62"/><column index="4" value="300"/></column_widths><filter_values><column index="1" value="85599"/></filter_values><conditional_formats/><row_id_formats/><display_formats/><hidden_columns/><plot_y_axes/><global_filter/></table><table schema="main" name="denomination" show_row_id="0" encoding="" plot_x_axis="" unlock_view_pk="_rowid_" freeze_columns="0"><sort/><column_widths><column index="1" value="101"/><column index="2" value="62"/><column index="3" value="125"/><column index="4" value="300"/></column_widths><filter_values/><conditional_formats/><row_id_formats/><display_formats/><hidden_columns/><plot_y_axes/><global_filter/></table><table schema="main" name="enterprise" show_row_id="0" encoding="" plot_x_axis="" unlock_view_pk="_rowid_" freeze_columns="0"><sort/><column_widths><column index="1" value="110"/><column index="2" value="44"/><column index="3" value="105"/><column index="4" value="105"/><column index="5" value="83"/><column index="6" value="106"/><column index="7" value="85"/></column_widths><filter_values/><conditional_formats/><row_id_formats/><display_formats/><hidden_columns/><plot_y_axes/><global_filter/></table></browse_table_settings></tab_browse><tab_sql><sql name="SQL 1">--Which percentage of companies are under which juridical form?
+SELECT JuridicalForm, 100*COUNT(EnterpriseNumber)/(SELECT COUNT(EnterpriseNumber) FROM enterprise) AS precentage
+FROM enterprise
+GROUP BY JuridicalForm 
+ORDER BY precentage DESC
+LIMIT 10;
+
+SELECT DISTINCT JuridicalForm FROM enterprise;
+
+--What is the distribution of company statuses?
+SELECT DISTINCT(Status) FROM enterprise;
+--Calculate average company age by sector (NACEcodes)
+SELECT DISTINCT(NaceCode) FROM activity;
+UPDATE enterprise
+SET StartDate = SUBSTR(StartDate, -4) || '-' ||
+           printf('%02d', StartDate + 0) || '-' ||
+           printf('%02d', SUBSTR(StartDate, INSTR(StartDate, '/') + 1) + 0);
+--TOP 10 NACE CODE WITH MAXIMUM NO OF COMPANIES
+SELECT NaceCode , COUNT(enterprise.EnterpriseNumber) AS Count_enterprise, ROUND(AVG(strftime('%Y', 'now') - strftime('%Y', enterprise.StartDate)),2) AS AvgAge
+FROM activity
+INNER JOIN enterprise
+ON enterprise.EnterpriseNumber= activity.EntityNumber
+GROUP BY NaceCode
+ORDER BY COUNT(enterprise.EnterpriseNumber) DESC
+LIMIT 10;
+
+SELECT NaceCode, COUNT(*) as count
+FROM activity
+GROUP BY NaceCode
+ORDER BY count DESC
+LIMIT 10;
+
+SELECT StartDate, JuridicalForm
+FROM enterprise
+GROUP BY strftime('%Y', 'StatDate');
+
+SELECT strftime('%Y', StartDate) AS StartYear, COUNT(*) AS TotalEnterprises
+FROM enterprise
+GROUP BY StartYear
+ORDER BY StartYear;
+
+
+SELECT NaceCode, COUNT(*) as count
+FROM activity
+GROUP BY NaceCode
+ORDER BY count DESC
+LIMIT 10;
+
+
+--Track company creation trends over time with time-based analysis
+--Compare geographical distribution of companies
+SELECT MunicipalityNL,Zipcode, COUNT(EntityNumber)
+FROM address
+GROUP BY Zipcode
+ORDER BY COUNT(EntityNumber) DESC
+LIMIT 10;
+
+
+SELECT TypeOfAddress, COUNT(EntityNumber)
+FROM address
+GROUP BY TypeOfAddress
+;
+--Find growth trends by sector with year-over-year analysis
+--Detect seasonal patterns for company creation
+--Number of branches per Enterprise
+SELECT COUNT(id), EnterpriseNumber
+FROM branch
+GROUP BY EnterpriseNumber
+ORDER BY COUNT(id) DESC;
+-- NUMber of entities by activity GROUP
+SELECT ActivityGroup, COUNT(EntityNumber)
+FROM activity
+GROUP BY ActivityGroup;
+---companies activity status++++++CROSS
+SELECT JuridicalSituation, COUNT(EnterpriseNumber)
+FROM enterprise
+GROUP BY JuridicalSituation
+ORDER BY COUNT(EnterpriseNumber) DESC
+LIMIT 10;
+SELECT DISTINCT(JuridicalForm)
+FROM enterprise;
+-----------------------
+SELECT DISTINCT(Classification)
+FROM activity;
+
+SELECT Classification, COUNT(EntityNumber)
+FROM activity
+GROUP BY Classification
+ORDER BY COUNT(EntityNumber) DESC;
+----------------------------------------
+
+--REGIONAL PRESENCE OF IT COMPANIES**********************
+--BRUSSELS HAS MAXIMUM IT COMPANIES=2314
+SELECT MunicipalityNL, Zipcode, COUNT(address.EntityNumber) AS CompanyCount
+FROM address
+INNER JOIN activity
+ON activity.EntityNumber = address.EntityNumber
+WHERE activity.NaceCode = 62020
+GROUP BY MunicipalityNL, Zipcode
+ORDER BY CompanyCount DESC
+LIMIT 10;
+
+--companies by nacecode in brussels
+SELECT activity.NaceCode, COUNT(address.EntityNumber) AS CompanyCount
+FROM address
+INNER JOIN activity
+  ON activity.EntityNumber = address.EntityNumber
+WHERE Zipcode = 1000
+GROUP BY activity.NaceCode
+ORDER BY CompanyCount DESC
+LIMIT 10;
+-----------------------------------
+SELECT DISTINCT(NaceVersion), COUNT(EntityNumber),100*COUNT(EntityNumber)/(SELECT COUNT(EntityNumber) FROM activity) AS precentage
+FROM activity
+GROUP BY NaceVersion
+Order BY COUNT(EntityNumber);
+SELECT MunicipalityNL, COUNT(EntityNumber)
+FROM address
+GROUP BY MunicipalityNL
+ORDER BY COUNT(EntityNumber) DESC
+LIMIT 10;</sql><current_tab id="0"/></tab_sql></sqlb_project>
